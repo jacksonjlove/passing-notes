@@ -1,25 +1,34 @@
-import { openDatabase } from "./db.js";
+import { openPostgres } from "./db.js";
 import { createApp } from "./app.js";
-import { reconcileAll } from "./rounds.js";
-const db = openDatabase(
-  process.env.DATABASE_PATH || "data/passing-notes.sqlite",
-);
-const app = createApp({
-  db,
-  origin: process.env.APP_ORIGIN || "http://localhost:5174",
-  devControls: process.env.LOCAL_TEST_CONTROLS === "1",
-  secure: process.env.SECURE_COOKIES === "1",
-});
-const server = app.listen(3002, "127.0.0.1", () =>
-  console.log("Passing Notes API: http://localhost:3002"),
-);
-reconcileAll(db, Date.now());
-const sweep = setInterval(() => reconcileAll(db, Date.now()), 30000);
-for (const signal of ["SIGTERM", "SIGINT"])
-  process.on(signal, () => {
-    clearInterval(sweep);
-    server.close(() => {
-      db.close();
-      process.exit(0);
-    });
+import { readConfig, startRuntime } from "./runtime.js";
+try {
+  const config = readConfig();
+  const db = openPostgres({ connectionString: config.connectionString });
+  const app = createApp({
+    db,
+    ...config,
+    requestLogger: (record) => console.log(JSON.stringify(record)),
   });
+  const runtime = await startRuntime({
+    db,
+    app,
+    host: config.host,
+    port: config.port,
+  });
+  console.log(`Passing Notes API listening on ${config.port}`);
+  for (const signal of ["SIGINT", "SIGTERM"])
+    process.once(signal, () => {
+      runtime
+        .stop()
+        .then(() => process.exit(0))
+        .catch(() => {
+          console.error("Shutdown failed");
+          process.exit(1);
+        });
+    });
+} catch {
+  console.error(
+    "Startup failed: check configuration, database access and migrations",
+  );
+  process.exitCode = 1;
+}

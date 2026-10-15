@@ -7,9 +7,11 @@ import RoundPage from "./components/RoundPage.jsx";
 export default function App() {
   const [user, setUser] = useState(null),
     [loading, setLoading] = useState(true),
+    [slowConnection, setSlowConnection] = useState(false),
     [groups, setGroups] = useState([]),
     [selected, setSelected] = useState(null),
     [error, setError] = useState("");
+  const [sharedRequired, setSharedRequired] = useState(false);
   const [invite] = useState(() =>
     new URLSearchParams(location.search).get("invite"),
   );
@@ -22,18 +24,28 @@ export default function App() {
     }
   }
   useEffect(() => {
+    const slowTimer = setTimeout(() => setSlowConnection(true), 2000);
     api("/auth/me")
       .then((data) => setUser(data.user))
       .catch((e) => {
         if (e.status !== 401) setError(e.message);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(slowTimer);
+        setLoading(false);
+      });
     const expired = () => {
       setUser(null);
       setSelected(null);
     };
+    const sharedAuthRequired = () => setSharedRequired(true);
     window.addEventListener("session-expired", expired);
-    return () => window.removeEventListener("session-expired", expired);
+    window.addEventListener("basic-auth-required", sharedAuthRequired);
+    return () => {
+      clearTimeout(slowTimer);
+      window.removeEventListener("session-expired", expired);
+      window.removeEventListener("basic-auth-required", sharedAuthRequired);
+    };
   }, []);
   useEffect(() => {
     if (user) refresh();
@@ -89,8 +101,23 @@ export default function App() {
         </div>
       </header>
       <main>
-        {loading ? (
-          <div className="loading">Opening the notebook…</div>
+        {sharedRequired ? (
+          <section className="empty-state" aria-live="polite">
+            <h1>Shared access required</h1>
+            <p>
+              Open the access page to let your browser ask for the shared
+              password.
+            </p>
+            <a className="button" href="/api/access">
+              Continue to access
+            </a>
+          </section>
+        ) : loading ? (
+          <div className="loading" role="status">
+            {slowConnection
+              ? "Connecting to Passing Notes. The server may take about a minute to wake up."
+              : "Opening the notebook…"}
+          </div>
         ) : !user ? (
           <AccountForm invite={invite} onSignedIn={setUser} />
         ) : group ? (

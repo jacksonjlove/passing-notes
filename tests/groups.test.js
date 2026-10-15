@@ -77,7 +77,7 @@ it("permits invited joins across groups and protects creator settings", async ()
       })
     ).status,
   ).toBe(404);
-  f.db.close();
+  await f.dispose();
 });
 it("rejects invalid schedules and empty prompts", async () => {
   const f = await fixture(1),
@@ -98,5 +98,5 @@ it("rejects invalid schedules and empty prompts", async () => {
         })
       ).status,
     ).toBe(400);
-  f.db.close();
+  await f.dispose();
 });

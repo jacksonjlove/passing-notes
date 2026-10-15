@@ -1,8 +1,8 @@
 node_modules/
 dist/
+.vercel/
 /data/
 .env
 .env.*
 !.env.example
-
-.DS_Store
+.neon

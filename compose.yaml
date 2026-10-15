@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: passing_notes_dev
+      POSTGRES_USER: passing_notes
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["passing_notes_pg:/var/lib/postgresql/data"]
+volumes:
+  passing_notes_pg:

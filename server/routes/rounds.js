@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { route } from "../errors.js";
 import { requireMembership } from "../groups.js";
-import { saveAnswer, reconcileGroup } from "../rounds.js";
+import { saveAnswer } from "../rounds.js";
 import { getRoundView, saveMatches, leaderboard } from "../roundViews.js";
+import { withGroupTransaction } from "../locks.js";
+import { reconcileGroupLocked } from "../rounds.js";
 export function roundRoutes({ db, now, devControls }) {
   const r = Router();
   r.use((req, res, next) => {
@@ -14,51 +16,59 @@ export function roundRoutes({ db, now, devControls }) {
   });
   r.get(
     "/groups/:id/round",
-    route((req, res) =>
+    route(async (req, res) =>
       res.json({
-        ...getRoundView(db, {
+        ...(await getRoundView(db, {
           groupId: req.params.id,
           userId: req.user.id,
-          nowMs: now(),
-        }),
+          nowMs: now,
+        })),
         devControls:
           devControls &&
-          requireMembership(db, req.params.id, req.user.id).creator_id ===
-            req.user.id,
+          (await requireMembership(db, req.params.id, req.user.id))
+            .creator_id === req.user.id,
       }),
     ),
   );
   r.put(
     "/groups/:id/round/answer",
-    route((req, res) =>
+    route(async (req, res) =>
       res.json(
-        saveAnswer(db, {
+        await saveAnswer(db, {
           groupId: req.params.id,
           userId: req.user.id,
           text: req.body.text,
-          nowMs: now(),
+          nowMs: now,
         }),
       ),
     ),
   );
   r.put(
     "/groups/:id/round/matches",
-    route((req, res) =>
+    route(async (req, res) =>
       res.json(
-        saveMatches(db, {
+        await saveMatches(db, {
           groupId: req.params.id,
           userId: req.user.id,
           matches: req.body.matches,
-          nowMs: now(),
+          nowMs: now,
         }),
       ),
     ),
   );
   r.get(
     "/groups/:id/leaderboard",
-    route((req, res) => {
-      reconcileGroup(db, req.params.id, now());
-      res.json({ entries: leaderboard(db, req.params.id, req.user.id) });
+    route(async (req, res) => {
+      const entries = await withGroupTransaction(
+        db,
+        req.params.id,
+        async (tx) => {
+          await requireMembership(tx, req.params.id, req.user.id);
+          await reconcileGroupLocked(tx, req.params.id, now());
+          return leaderboard(tx, req.params.id, req.user.id);
+        },
+      );
+      res.json({ entries });
     }),
   );
   return r;

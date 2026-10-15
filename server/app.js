@@ -1,19 +1,45 @@
 import express from "express";
-import { openDatabase } from "./db.js";
 import { authRoutes } from "./routes/auth.js";
 import { devRoutes } from "./routes/dev.js";
 import { roundRoutes } from "./routes/rounds.js";
 import { groupRoutes } from "./routes/groups.js";
 import { readUser } from "./auth.js";
+import { basicAuth } from "./basicAuth.js";
 export function createApp({
-  db = openDatabase(),
+  db,
   now = Date.now,
   devControls = false,
   origin = "http://localhost:5174",
   secure = false,
+  basicAuthCredentials = null,
+  commit = "local",
+  requestLogger = () => {},
 } = {}) {
+  if (!db) throw new Error("createApp requires a database executor");
   const app = express();
   app.disable("x-powered-by");
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api/")) res.set("Cache-Control", "no-store");
+    res.once("finish", () =>
+      requestLogger({
+        method: req.method,
+        route: req.route?.path || "unmatched",
+        status: res.statusCode,
+      }),
+    );
+    next();
+  });
+  if (basicAuthCredentials)
+    app.head("/api/version", basicAuth(basicAuthCredentials));
+  app.get("/api/version", (req, res) => res.json({ commit }));
+  if (basicAuthCredentials) app.use(basicAuth(basicAuthCredentials));
+  app.get("/api/access", (req, res) => {
+    res
+      .type("html")
+      .send(
+        '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Passing Notes access</title><body><main><h1>Passing Notes access confirmed</h1><p>Your browser has authenticated with the shared access gate.</p><p><a href="/">Continue to Passing Notes</a></p></main></body></html>',
+      );
+  });
   app.use(express.json({ limit: "16kb" }));
   const attempts = new Map();
   app.use((req, res, next) => {
@@ -49,8 +75,12 @@ export function createApp({
         if (attempts.size > 10000) attempts.clear();
       }
     }
-    req.user = readUser(db, req, now());
-    next();
+    Promise.resolve(readUser(db, req, now()))
+      .then((user) => {
+        req.user = user;
+        next();
+      })
+      .catch(next);
   });
   app.use("/api/auth", authRoutes({ db, now, secure }));
   app.use("/api", groupRoutes({ db, now }));
@@ -59,7 +89,11 @@ export function createApp({
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
     const status = error.status || 500;
-    if (status === 500) console.error("Request failed:", error.message);
+    if (status === 500)
+      console.error(
+        "Request failed",
+        /^\w{1,12}$/.test(error.code || "") ? error.code : "INTERNAL",
+      );
     res.status(status).json({
       error: {
         code: error.code || String(status),
