@@ -102,7 +102,7 @@ export default function RoundPage({ group, user, onBack, onUpdate }) {
         </div>
       )}
       {tab === "settings" ? (
-        <GroupSettings group={group} onUpdate={onUpdate} />
+        <GroupSettings group={group} onUpdate={onUpdate} onDelete={onBack} />
       ) : tab === "scores" ? (
         <Leaderboard entries={entries} />
       ) : !view ? (
