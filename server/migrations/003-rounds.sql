@@ -1,0 +1,6 @@
+CREATE TABLE rounds(id TEXT PRIMARY KEY, group_id TEXT REFERENCES groups(id), local_date TEXT NOT NULL, prompt_id TEXT NOT NULL, prompt_text TEXT NOT NULL, opens_at INTEGER NOT NULL, answer_deadline INTEGER NOT NULL, reveal_at INTEGER NOT NULL, phase TEXT NOT NULL DEFAULT 'answering', scored INTEGER NOT NULL DEFAULT 0, finalized INTEGER NOT NULL DEFAULT 0, is_test INTEGER NOT NULL DEFAULT 0, UNIQUE(group_id,local_date));
+CREATE TABLE round_participants(round_id TEXT REFERENCES rounds(id),account_id TEXT REFERENCES accounts(id),PRIMARY KEY(round_id,account_id));
+CREATE TABLE answers(id TEXT PRIMARY KEY,round_id TEXT REFERENCES rounds(id),account_id TEXT REFERENCES accounts(id),text TEXT NOT NULL,UNIQUE(round_id,account_id));
+CREATE TABLE round_boards(round_id TEXT REFERENCES rounds(id),account_id TEXT REFERENCES accounts(id),answer_order TEXT NOT NULL,PRIMARY KEY(round_id,account_id));
+CREATE TABLE guesses(round_id TEXT REFERENCES rounds(id),guesser_id TEXT REFERENCES accounts(id),answer_id TEXT REFERENCES answers(id),person_id TEXT REFERENCES accounts(id),PRIMARY KEY(round_id,guesser_id,answer_id),UNIQUE(round_id,guesser_id,person_id));
+CREATE TABLE round_scores(round_id TEXT REFERENCES rounds(id),account_id TEXT REFERENCES accounts(id),score INTEGER NOT NULL,PRIMARY KEY(round_id,account_id));
