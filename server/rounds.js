@@ -56,9 +56,9 @@ export function advanceRound(db, r, now) {
   const eligible = db
     .prepare("SELECT count(*) AS n FROM round_participants WHERE round_id=?")
     .get(r.id).n;
-  if (now >= r.reveal_at || (now >= r.answer_deadline && count < 4)) {
+  if (now >= r.reveal_at || (now >= r.answer_deadline && count < 3)) {
     finalizeRound(db, r.id, now);
-  } else if (count >= 4 && (now >= r.answer_deadline || count === eligible))
+  } else if (count >= 3 && (now >= r.answer_deadline || count === eligible))
     db.prepare("UPDATE rounds SET phase='guessing',scored=1 WHERE id=?").run(
       r.id,
     );

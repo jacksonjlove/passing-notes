@@ -25,24 +25,40 @@ export default function AccountForm({ onSignedIn, invite }) {
   return (
     <div className="welcome">
       <div className="welcome-copy">
-        <span className="eyebrow">A little mystery, every day</span>
+        <span className="eyebrow">
+          A daily guessing game for your friend group
+        </span>
         <h1>
-          Good friends. <br />
-          Secret answers. <br />
-          <em>Wild guesses.</em>
+          Your friends wrote these notes. <em>Can you tell who wrote which?</em>
         </h1>
-        <p>A daily note. A familiar voice. Can you tell who said what?</p>
-        <div className="welcome-notes">
-          <div className="mini-note yellow">
-            <span>today’s prompt</span>
-            <p>What would your completely useless superpower be?</p>
-            <i>↗ pass it on</i>
+        <p>
+          Every day, your private group answers one question anonymously. Match
+          each answer to a friend, then return for the reveal. Each correct
+          match earns a point.
+        </p>
+        <section className="landing-example" aria-label="Example round">
+          <span className="eyebrow">Picture a round like this</span>
+          <p className="example-question">What’s your useless superpower?</p>
+          <blockquote>“Knowing exactly when the toast will pop.”</blockquote>
+          <div className="example-guess">
+            <strong>Who wrote it?</strong>
+            <span>Alex · Sam · Jordan</span>
           </div>
-          <div className="mini-note pink">
-            <p>Knowing exactly when the toast will pop.</p>
-            <span>— someone you know</span>
-          </div>
-        </div>
+        </section>
+        <ol className="landing-steps" aria-label="How to play">
+          <li>
+            <strong>Answer</strong>
+            <span>The daily question.</span>
+          </li>
+          <li>
+            <strong>Match</strong>
+            <span>Friends to their anonymous answers.</span>
+          </li>
+          <li>
+            <strong>Reveal</strong>
+            <span>Who said what and see your score.</span>
+          </li>
+        </ol>
       </div>
       <section className="paper auth-paper">
         <span className="eyebrow">Your seat at the table</span>

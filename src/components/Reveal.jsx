@@ -20,7 +20,7 @@ export default function Reveal({ reveal, userId }) {
               ? winners.length > 1
                 ? `${winners.map((w) => w.user.displayName).join(", ")} share today’s win.`
                 : "Your points have been added to the leaderboard."
-              : "Fewer than four people answered, so this round awards no points."}
+              : "Fewer than three people answered, so this round awards no points."}
           </p>
         </div>
         {own && (

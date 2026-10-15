@@ -17,7 +17,7 @@
 - One account may belong to multiple groups.
 - A group needs at least three members to start daily rounds.
 - Each eligible player may submit one nonblank plain-text answer, up to 200 characters.
-- With fewer than four, reveal all submitted notes immediately, with no guessing or points.
+- With fewer than three, reveal all submitted notes immediately, with no guessing or points.
 - Only players who answered can guess.
 - Award one point per correct match. The player's own answer earns no point.
 - Show only display name and total score, ordered highest first, with alphabetical display-name ordering for ties and a stable account-ID fallback.
@@ -129,7 +129,7 @@ it('reveals three answers immediately at the answer deadline without points', ()
   expect(readRound(db, round.id)).toMatchObject({phase:'revealed',scored:false});
   expect(db.prepare('SELECT count(*) AS n FROM round_scores').get().n).toBe(0);
 });
-it('opens guessing early only with four answers from all eligible members', () => {
+it('opens guessing early only with three answers from all eligible members', () => {
   const round = seedRound(db, {members:4, answers:4, answerDeadline:1000,revealAt:2000});
   reconcileGroup(db, round.groupId, 500);
   expect(readRound(db, round.id).phase).toBe('guessing');
@@ -142,14 +142,14 @@ it('opens guessing early only with four answers from all eligible members', () =
 ```js
 if (nowMs >= round.revealAt) finalizeRound(round);
 else if (nowMs >= round.answerDeadline)
-  answerCount < 4 ? revealUnscored(round) : openGuessing(round);
-else if (answerCount >= 4 && answerCount === participantCount) openGuessing(round);
+  answerCount < 3 ? revealUnscored(round) : openGuessing(round);
+else if (answerCount >= 3 && answerCount === participantCount) openGuessing(round);
 ```
 
 `finalizeRound` at this task may reveal unscored rounds; scored finalization is completed in Task 4 before any app handoff. Catch up existing rounds first, then create only the current day's eligible round; never fabricate missed-day rounds. Select memberships joined before opening, applying pending schedule only at its effective date. Creation after a group reaches three members waits until the following local midnight; store an activation local date.
 - [ ] Resolve time zones with Luxon. For nonexistent spring-forward times, use the first valid local instant after the gap; for ambiguous fall-back times, choose the earlier instant. If resolution collapses answer/reveal ordering, reject that scheduled day with a clear settings error rather than create an invalid round. Test both transitions and a viewer in a different time zone.
 - [ ] Save trimmed nonblank answers with `Array.from(text).length <= 200`; reject ineligible members and any edit after phase transition. Submission and early guessing transition share one transaction. Before guessing only participation counts and the viewer's own answer are returned.
-- [ ] Test zero/three/four submissions, all-three early waiting, late joins, edits at exactly the deadline, restart reconciliation, skipped offline days, and pending schedules. Commit as `feat: implement scheduled rounds and saved answers`.
+- [ ] Test zero/three/four submissions, all-three early matching, late joins, edits at exactly the deadline, restart reconciliation, skipped offline days, and pending schedules. Commit as `feat: implement scheduled rounds and saved answers`.
 
 ## Task 4: Private matching, reveal, scores, and local test controls
 
@@ -178,7 +178,7 @@ it('awards each round once across repeated reconciliation', () => {
 - [ ] Persist stable per-player shuffled board order in `round_boards` and matches in `guesses` (unique round/guesser/answer and round/guesser/person). Shuffle with crypto-backed Fisher-Yates; never derive order from authors. For each submitted match validate answer belongs to this round, person submitted in it, neither is the guesser's own, and neither answer nor person repeats. Permit incomplete matches. A nonanswering member receives no board and cannot submit guesses.
 - [ ] Implement scoring in one transaction: calculate each answering player's correct other-answer matches, insert one `round_scores` row per round/player, set finalized, and reveal. Unassigned slots count zero. Unique constraints plus finalized guard prevent double awarding. Winners share max score, including zero ties. Query leaderboard totals from score rows rather than separately incrementing account counters.
 - [ ] Implement safe view projections and membership checks. After reveal all group members see author/answer pairs; only the requesting player sees their guessed matches. Concurrent deadline requests must not bypass locks or leak identities.
-- [ ] Add creator-only `POST /api/groups/:id/dev/round {action}` for `start`, `guess`, `reveal`. Require explicit `LOCAL_TEST_CONTROLS=1` parsed at startup; routes otherwise return 404. Test rounds are tagged; refuse overlapping real active rounds. `guess` with fewer than four answers immediately reveals unscored. Controls advance persisted deadlines using the same lifecycle, never separate scoring logic.
+- [ ] Add creator-only `POST /api/groups/:id/dev/round {action}` for `start`, `guess`, `reveal`. Require explicit `LOCAL_TEST_CONTROLS=1` parsed at startup; routes otherwise return 404. Test rounds are tagged; refuse overlapping real active rounds. `guess` with fewer than three answers immediately reveals unscored. Controls advance persisted deadlines using the same lifecycle, never separate scoring logic.
 - [ ] Run all server tests including tampered author/answer IDs, outsider access, duplicate names, incomplete boards, ties, double finalize, restart scores, and controls disabled. Commit as `feat: add anonymous matching and reliable scoring`.
 
 ## Task 5: Notebook accounts, groups, settings, and answering screens
@@ -230,7 +230,7 @@ it('shows names and totals without ranks', () => {
 
 - [ ] Run failures, then implement one shared `assignName(assignments,answerId,personId)` operation for dragging and button/keyboard selection. If target has another person and chosen person is elsewhere, swap; if target is empty, move; allow clear. Use Pointer Events for mouse/touch dragging with explicit handles, preserve page scrolling outside handles, and retain tap/keyboard buttons. Announce selected person, assignment, and save status via a live region.
 - [ ] Render shuffled answers without author cues, distinguish duplicate names using username, exclude own answer, and retain unsaved state during polling. After fixed reveal, fetch and render author pairs, correct/incorrect matches, daily winners, unscored notice, and total-score list. Show all notes to nonanswerers only after reveal.
-- [ ] Add a temporary-file restart test that registers four accounts, creates/join a group, runs a test round, saves answers/matches, closes the app/database, reopens with a later injected clock, and asserts revealed authors and exactly-once totals. Include a second three-answer round with immediate unscored reveal. Run `npm test` and `npm run build` once the full flow passes.
+- [ ] Add a temporary-file restart test that registers four accounts, creates/join a group, runs a test round, saves answers/matches, closes the app/database, reopens with a later injected clock, and asserts revealed authors and exactly-once totals. Include a second two-answer round with immediate unscored reveal. Run `npm test` and `npm run build` once the full flow passes.
 - [ ] Verify the running app at desktop and 360px phone widths: four different browser sessions, refresh/relogin, two groups, tap/drag/keyboard assignment, missed answer, incomplete guesses, early guessing, ties, and failed saves. Use development controls for time changes. Record actual results, not assumed passes.
 - [ ] Write README commands and behavior:
 
@@ -243,7 +243,7 @@ npm test
 npm run build
 ```
 
-Explain account rules, local data path, restarting, group schedule phases, four-answer scoring minimum, and that remote friends need a later hosting step. Note Google linking and deployment remain future work. Do not provide a public URL or claim PS3 is complete.
+Explain account rules, local data path, restarting, group schedule phases, three-answer scoring minimum, and that remote friends need a later hosting step. Note Google linking and deployment remain future work. Do not provide a public URL or claim PS3 is complete.
 - [ ] Commit as `feat: complete Passing Notes daily game and local guide`.
 
 ## Plan review and execution boundary

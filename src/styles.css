@@ -325,14 +325,62 @@ textarea::placeholder {
   padding: 22px 0 30px;
 }
 .welcome h1 {
-  font-size: clamp(38px, 5vw, 58px);
+  font-size: clamp(32px, 3.5vw, 46px);
   line-height: 1.13;
   margin: 22px 0;
 }
 .welcome-copy > p {
-  max-width: 330px;
+  max-width: 480px;
   color: var(--muted);
   font-size: 15px;
+}
+.landing-example {
+  margin: 24px 0;
+  padding: 22px;
+  background: #f2e7b8;
+  border: 1px solid #d7c995;
+  border-radius: 4px;
+  box-shadow: 2px 5px 10px #3136260d;
+}
+.landing-example .example-question {
+  font-size: 14px;
+  margin: 12px 0;
+}
+.landing-example blockquote {
+  font:
+    italic 21px/1.4 Georgia,
+    serif;
+  margin: 16px 0;
+}
+.example-guess {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+}
+.landing-steps {
+  list-style: none;
+  counter-reset: play-step;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.landing-steps li {
+  counter-increment: play-step;
+  display: grid;
+  grid-template-columns: 24px 60px 1fr;
+  gap: 8px;
+  font-size: 13px;
+  align-items: baseline;
+}
+.landing-steps li::before {
+  content: counter(play-step, decimal-leading-zero);
+  color: var(--muted);
+  font-size: 11px;
+}
+.landing-steps li > span {
+  color: var(--muted);
 }
 .welcome-notes {
   height: 220px;
@@ -1224,7 +1272,7 @@ textarea::placeholder {
     width: 100%;
   }
   .welcome h1 {
-    font-size: 40px;
+    font-size: 32px;
     margin: 17px 0;
   }
   .welcome h1 br {

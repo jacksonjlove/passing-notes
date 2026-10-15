@@ -35,8 +35,8 @@ Each eligible player may submit one nonblank plain-text answer, up to 200 charac
 ## Round lifecycle
 
 1. **Answering:** Show the prompt, answer field, character counter, and deadline. Keep submissions and authors private; show only participation progress.
-2. **Early guessing:** If every eligible member submits before the answer deadline and there are at least four answers, open guessing immediately and lock answers. The reveal time remains unchanged.
-3. **Answer deadline:** With at least four submitted answers, open guessing. With fewer than four, reveal all submitted notes immediately, with no guessing or points. Even if all three eligible members answer early, wait until the answer deadline for this unscored reveal.
+2. **Early guessing:** If every eligible member submits before the answer deadline and there are at least three answers, open guessing immediately and lock answers. The reveal time remains unchanged.
+3. **Answer deadline:** With at least three submitted answers, open guessing. With fewer than three, reveal all submitted notes immediately, with no guessing or points. If all three eligible members answer early, open guessing immediately and keep the fixed reveal time.
 4. **Guessing:** Only players who answered can guess. Members who missed answering cannot earn points and see the notes only after reveal.
 5. **Scheduled reveal:** For scored rounds, lock guesses and reveal authors at the fixed reveal time, whether or not everyone finished guessing.
 
@@ -67,7 +67,7 @@ Layouts must work on phones and desktops. Matching cannot rely solely on draggin
 
 ## Local testing control
 
-Provide a clearly labeled creator-only development control to create a test round and advance it through answering, guessing, and reveal. It must apply the same participation and scoring rules as ordinary rounds; an under-four round reveals without points. Enable it only with an explicit local development setting and reject its endpoints when disabled. This supports trying the entire flow without waiting all day and is not a production feature.
+Provide a clearly labeled creator-only development control to create a test round and advance it through answering, guessing, and reveal. It must apply the same participation and scoring rules as ordinary rounds; an under-three round reveals without points. Enable it only with an explicit local development setting and reject its endpoints when disabled. This supports trying the entire flow without waiting all day and is not a production feature.
 
 ## Architecture and storage
 
@@ -79,9 +79,9 @@ The frontend asks the API for authorized round views; the backend filters fields
 
 ## Verification
 
-Meaningful automated checks cover account/session behavior; creator/member permissions; invitation joining; server-side author secrecy; answer validation; one-to-one matching; early opening; deadline transitions; under-four immediate reveal; eligibility of late joiners; daylight-saving schedule resolution; score calculation and idempotency; and persistence after restarting against the same database.
+Meaningful automated checks cover account/session behavior; creator/member permissions; invitation joining; server-side author secrecy; answer validation; one-to-one matching; early opening; deadline transitions; under-three immediate reveal; eligibility of late joiners; daylight-saving schedule resolution; score calculation and idempotency; and persistence after restarting against the same database.
 
-Exercise the complete local flow with at least four accounts, plus a three-answer unscored round. Verify phone layout, drag/tap/keyboard matching, refresh persistence, failed-save retry, ties, and disabled development controls. A controllable clock should make lifecycle tests deterministic without real-time waiting.
+Exercise the complete local flow with at least four accounts, plus a two-answer unscored round. Verify phone layout, drag/tap/keyboard matching, refresh persistence, failed-save retry, ties, and disabled development controls. A controllable clock should make lifecycle tests deterministic without real-time waiting.
 
 ## Later PS3 work
 

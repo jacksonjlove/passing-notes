@@ -5,7 +5,7 @@ export function finalizeRound(db, roundId, nowMs) {
     const answers = db
       .prepare("SELECT * FROM answers WHERE round_id=?")
       .all(roundId);
-    const scored = answers.length >= 4;
+    const scored = answers.length >= 3;
     if (scored)
       for (const answer of answers) {
         const score = db

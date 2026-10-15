@@ -113,7 +113,7 @@ export default function RoundPage({ group, user, onBack, onUpdate }) {
           <h2>A new page is on its way.</h2>
           <p className="muted">
             {(view?.memberCount ?? group.memberCount) < 3
-              ? "Invite at least three people to start your daily game."
+              ? "Your group needs at least three members to start a daily game."
               : "Your first prompt arrives at the next midnight in your group’s time zone."}
           </p>
           {group.role === "creator" && (
@@ -193,7 +193,7 @@ export default function RoundPage({ group, user, onBack, onUpdate }) {
                   />
                 </div>
                 <p className="small muted">
-                  Four answers make a scored round. With fewer, we’ll simply
+                  Three answers make a scored round. With fewer, we’ll simply
                   open the notes when answers close.
                 </p>
               </aside>

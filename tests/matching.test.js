@@ -74,7 +74,7 @@ it("denies guesses to nonanswerers but permits reading the reveal", async () => 
   expect((await f.agents[4].get(f.path)).body.reveal.answers).toHaveLength(4);
   f.db.close();
 });
-it("enforces creator-only development controls and respects under-four scoring", async () => {
+it("enforces creator-only development controls and respects under-three scoring", async () => {
   const f = await groupFixture(3);
   const path = `/api/groups/${f.group.id}/dev/round`;
   expect(
@@ -83,7 +83,7 @@ it("enforces creator-only development controls and respects under-four scoring",
   expect(
     (await write(f.agents[0], "post", path, { action: "start" })).status,
   ).toBe(201);
-  for (const a of f.agents)
+  for (const a of f.agents.slice(0, 2))
     await write(a, "put", `/api/groups/${f.group.id}/round/answer`, {
       text: "Hi",
     });

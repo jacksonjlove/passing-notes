@@ -2,7 +2,7 @@
 
 A private daily guessing game for friends and family. Answer a shared prompt, match anonymous notes to their authors, and return for the reveal. Built for both phones and computers with a notebook-inspired interface.
 
-**Note to the grader:** This is a new project for Problem Set 3. It is different from the PS2 guitar amp simulator, The Creative Useful Modeler, which remains in `ps2-web-app/`. See [GRADER_NOTE.md](GRADER_NOTE.md).
+**Note to the grader:** This is a new project for Problem Set 3. It is different from the PS2 guitar amp simulator, The Creative Useful Modeler, which remains in the separate SI 212 assignments repository. See [GRADER_NOTE.md](GRADER_NOTE.md).
 
 ## Run locally
 
@@ -22,8 +22,8 @@ Create a profile with a username, display name, and password. Create a group or 
 - A group needs at least three members. Accounts can join multiple groups.
 - A fresh prompt arrives at midnight in the group’s chosen time zone. Its first normal round starts the midnight after the third member joins.
 - Each player submits one text answer, up to 200 Unicode characters. Answers remain editable until matching begins.
-- Four or more submitted answers make a scored round. Matching opens at the answer deadline, or early if everyone eligible has answered.
-- With fewer than four answers at the answer deadline, notes reveal immediately without guessing or points. A three-member group does not reveal early just because all three answered.
+- Three or more submitted answers make a scored round. Matching opens at the answer deadline, or early if everyone eligible has answered.
+- With fewer than three answers at the answer deadline, notes reveal immediately without guessing or points. All three members answering early opens matching immediately; the reveal time stays fixed.
 - Only people who answered can guess. New members join the game the next day.
 - Your own answer is excluded from your matching board. Use each person once. Click/tap a name and then a note, drag using the name’s grip, or use keyboard focus and Enter/Space. Occupied names move or swap.
 - Matches save automatically and can change until the fixed reveal time. Empty or incorrect slots score zero; correct matches score one point. If saving fails, retry while the round is still open.
@@ -40,7 +40,7 @@ Run with explicit local testing controls:
 LOCAL_TEST_CONTROLS=1 npm start
 ```
 
-Create at least three test profiles in separate browser profiles or by signing out and back in. Join them to the same group. The creator can expand **Local testing controls** on the group page, start a practice round, close answers, and reveal notes. Four answers are still required for points. Practice rounds use the same storage and scoring rules and contribute to that local group’s leaderboard.
+Create at least three test profiles in separate browser profiles or by signing out and back in. Join them to the same group. The creator can expand **Local testing controls** on the group page, start a practice round, close answers, and reveal notes. Three answers are required for points. Practice rounds use the same storage and scoring rules and contribute to that local group’s leaderboard.
 
 Practice rounds have an answer deadline one hour after creation and a reveal two hours after creation; the controls can advance these sooner. Normal daily rounds use the group’s chosen schedule. Starting a practice round is refused while a current round is active. The testing endpoints are absent unless the setting is enabled.
 
