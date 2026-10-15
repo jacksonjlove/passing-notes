@@ -65,3 +65,5 @@ Tests cover accounts, creator/member permissions, invitations, prompt rotation, 
 The PostgreSQL conversion, Part A shared authentication, public version endpoint, and test-gated deployment workflow are implemented. Production has not yet been provisioned or verified. Render Free may take about a minute to wake after idle time; the frontend shows connecting/retry feedback and never automatically replays writes.
 
 Part B Google/GitHub sign-in, account linking, and the class showcase remain separate work. Existing personal passwords do not replace that requirement. See [hosting setup](docs/hosting-setup.md).
+
+Google player sign-in and linking setup: [docs/google-setup.md](docs/google-setup.md). Password login remains available; Google activation is controlled on Render.

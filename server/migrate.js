@@ -99,6 +99,8 @@ export async function assertSchema(db) {
     }
     const required = [
       "accounts",
+      "google_identities",
+      "oauth_attempts",
       "sessions",
       "groups",
       "memberships",

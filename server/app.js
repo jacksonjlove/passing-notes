@@ -1,4 +1,5 @@
 import express from "express";
+import { googleRoutes } from "./routes/google.js";
 import { authRoutes } from "./routes/auth.js";
 import { devRoutes } from "./routes/dev.js";
 import { roundRoutes } from "./routes/rounds.js";
@@ -12,6 +13,7 @@ export function createApp({
   origin = "http://localhost:5174",
   secure = false,
   basicAuthCredentials = null,
+  google = null,
   commit = "local",
   requestLogger = () => {},
 } = {}) {
@@ -34,6 +36,7 @@ export function createApp({
   app.get("/api/version", (req, res) => res.json({ commit }));
   if (basicAuthCredentials) app.use(basicAuth(basicAuthCredentials));
   app.get("/api/access", (req, res) => {
+    if (!basicAuthCredentials) return res.redirect("/");
     res
       .type("html")
       .send(
@@ -82,6 +85,7 @@ export function createApp({
       })
       .catch(next);
   });
+  app.use("/api/auth", googleRoutes({ db, now, secure, google }));
   app.use("/api/auth", authRoutes({ db, now, secure }));
   app.use("/api", groupRoutes({ db, now }));
   app.use("/api", roundRoutes({ db, now, devControls }));
