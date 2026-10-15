@@ -1,12 +1,10 @@
-App: not-provisioned
-API: not-provisioned
+App: https://passing-notes.vercel.app
+API: https://passing-notes-api-0rsu.onrender.com
 Protected: /api/groups
 
 # Passing Notes deployment
 
-Status: Neon production database provisioned, migrated and verified end to end; Vercel/Render deployment is still pending.
-The first two lines must be replaced with verified HTTPS URLs after account setup.
-The values above deliberately do not claim that the app is online.
+Status: The basic-mode app is live on Vercel/Render/Neon. Google player sign-in is prepared on this branch; activation and a real Google browser round trip are still pending.
 
 ## Hosts
 
@@ -57,3 +55,15 @@ Every main push runs format checks, PostgreSQL-backed tests and a frontend build
 Database migration failure stops the release. A later deployment failure can leave a compatible schema/backend ahead of the old frontend; deployments across two hosts are not atomic. Repair forward or roll back compatible code. Never drop production tables or reverse migrations automatically. Production data persists independently in Neon.
 
 [Hosting setup and live checklist](docs/hosting-setup.md) describes provisioning, backups, restore checks, logs and the live tests. No live persistence, cold-start, browser-cookie, host-log, or GitHub deployment check has yet been completed.
+
+## Google player accounts (prepared; live activation pending)
+
+See [Google setup](docs/google-setup.md) for owner registration, callbacks and release checks. GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set on Render only. AUTH_MODE=basic retains the shared gate; AUTH_MODE=google retires it and requires Google configuration. Password player sign-in remains. No frontend provider secret or Google API access beyond openid/profile is required.
+
+| Level | Server-enforced access |
+| --- | --- |
+| Visitor | Frontend, sign-in/registration and version; /api/groups refuses with 401 |
+| Player/group member | Own account, create groups, join by invitation, read only own groups and submit eligible own answers/guesses |
+| Group creator | Player access plus settings, invitations and prompts for their own groups; other members receive 403 for those actions |
+
+Account linking requires the existing password, a fresh Google authorization and the same live player session. Google identities never link automatically by email. The additive migration preserves existing rows. Real Google browser verification remains pending owner registration and release.

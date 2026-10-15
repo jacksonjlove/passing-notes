@@ -102,7 +102,9 @@ it("adds a later migration without losing existing rows", async () => {
       "Upgrade",
       "encoded",
     ]);
-    for (const file of ["001-initial.sql", "002-round-creation-order.sql"])
+    for (const file of await readdir(
+      new URL("../server/pg-migrations/", import.meta.url),
+    ))
       await writeFile(
         join(folder, file),
         await readFile(
@@ -111,7 +113,7 @@ it("adds a later migration without losing existing rows", async () => {
         ),
       );
     await writeFile(
-      join(folder, "003-upgrade-test.sql"),
+      join(folder, "999-upgrade-test.sql"),
       "ALTER TABLE accounts ADD COLUMN upgrade_note TEXT;",
     );
     await migrate(f.db, { migrationDirectory: folder });
@@ -125,6 +127,41 @@ it("adds a later migration without losing existing rows", async () => {
     ).toEqual([{ username: "upgrade", upgrade_note: null }]);
   } finally {
     await f.dispose();
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+it("upgrades the pre-Google schema while retaining player data and password hashes", async () => {
+  const folder = await mkdtemp(join(tmpdir(), "pn-google-upgrade-"));
+  let f;
+  try {
+    for (const file of ["001-initial.sql", "002-round-creation-order.sql"])
+      await writeFile(
+        join(folder, file),
+        await readFile(
+          new URL("../server/pg-migrations/" + file, import.meta.url),
+          "utf8",
+        ),
+      );
+    f = await createTestDatabase({ migrationDirectory: folder });
+    await f.db.query("INSERT INTO accounts VALUES($1,$2,$3,$4)", [
+      "existing",
+      "existing",
+      "Existing Player",
+      "unchanged-hash",
+    ]);
+    await migrate(f.db);
+    expect(
+      (await f.db.query("SELECT * FROM accounts WHERE id=$1", ["existing"]))
+        .rows[0],
+    ).toEqual({
+      id: "existing",
+      username: "existing",
+      display_name: "Existing Player",
+      password_hash: "unchanged-hash",
+    });
+    await assertSchema(f.db);
+  } finally {
+    await f?.dispose();
     await rm(folder, { recursive: true, force: true });
   }
 });

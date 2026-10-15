@@ -21,6 +21,7 @@ export async function hashPassword(password) {
   return `${salt}:${hash.toString("hex")}`;
 }
 export async function verifyPassword(password, encoded) {
+  if (!encoded) return false;
   const [salt, hex] = encoded.split(":");
   const hash = await scrypt(password, salt, 64);
   return timingSafeEqual(hash, Buffer.from(hex, "hex"));
@@ -72,12 +73,10 @@ export async function register(db, body) {
   const id = randomUUID(),
     hash = await hashPassword(body.password);
   try {
-    await db.query("INSERT INTO accounts VALUES($1,$2,$3,$4)", [
-      id,
-      username,
-      displayName,
-      hash,
-    ]);
+    await db.query(
+      "INSERT INTO accounts(id,username,display_name,password_hash) VALUES($1,$2,$3,$4)",
+      [id, username, displayName, hash],
+    );
   } catch (error) {
     if (error.code === "23505") fail(409, "That username is already taken.");
     throw error;

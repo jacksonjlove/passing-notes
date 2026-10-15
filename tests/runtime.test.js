@@ -100,3 +100,19 @@ it("catches sweep failures without leaking private error messages", async () => 
     await runtime.stop();
   }
 });
+it("Google production mode requires complete credentials and retires only the shared gate", () => {
+  const env = {
+    NODE_ENV: "production",
+    DATABASE_URL: "postgresql://test@db.example/db",
+    APP_ORIGIN: "https://notes.example",
+    SECURE_COOKIES: "1",
+    RENDER_GIT_COMMIT: "a".repeat(40),
+    AUTH_MODE: "google",
+    GOOGLE_CLIENT_ID: "id",
+    GOOGLE_CLIENT_SECRET: "secret",
+  };
+  expect(readConfig(env).basicAuthCredentials).toBeNull();
+  expect(readConfig(env).googleConfig.clientId).toBe("id");
+  expect(() => readConfig({ ...env, GOOGLE_CLIENT_SECRET: "" })).toThrow();
+  expect(() => readConfig({ ...env, AUTH_MODE: "none" })).toThrow();
+});

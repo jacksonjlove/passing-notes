@@ -4,6 +4,7 @@ import Icon from "./components/Icon.jsx";
 import AccountForm from "./components/AccountForm.jsx";
 import GroupList from "./components/GroupList.jsx";
 import RoundPage from "./components/RoundPage.jsx";
+import GoogleAccount from "./components/GoogleAccount.jsx";
 export default function App() {
   const [user, setUser] = useState(null),
     [loading, setLoading] = useState(true),
@@ -101,6 +102,16 @@ export default function App() {
         </div>
       </header>
       <main>
+        {new URLSearchParams(location.search).has("google_error") && (
+          <p role="alert" className="error">
+            Google sign-in could not finish. Please try again. If you already
+            have a player account, sign in with your password to link Google.
+          </p>
+        )}
+        {new URLSearchParams(location.search).has("google_linked") && (
+          <p role="status">Google is now linked to your player account.</p>
+        )}
+        {user && <GoogleAccount user={user} invite={invite} />}
         {sharedRequired ? (
           <section className="empty-state" aria-live="polite">
             <h1>Shared access required</h1>

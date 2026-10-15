@@ -14,6 +14,13 @@ export function readConfig(env = process.env) {
   const parsed = new URL(origin);
   if (parsed.origin !== origin)
     throw Error("APP_ORIGIN must be an exact origin");
+  const authMode = env.AUTH_MODE || "basic";
+  if (!["basic", "google"].includes(authMode)) throw Error("Invalid AUTH_MODE");
+  const hasGoogle = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+  if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET))
+    throw Error("Set both Google credentials");
+  if (authMode === "google" && !hasGoogle)
+    throw Error("Google mode requires provider credentials");
   const username = env.BASIC_AUTH_USERNAME,
     password = env.BASIC_AUTH_PASSWORD;
   if (username?.includes(":"))
@@ -22,8 +29,7 @@ export function readConfig(env = process.env) {
     throw Error("Set both shared access credentials");
   if (production) {
     if (
-      !username ||
-      !password ||
+      (authMode === "basic" && (!username || !password)) ||
       env.SECURE_COOKIES !== "1" ||
       !/^https:/.test(origin)
     )
@@ -43,7 +49,17 @@ export function readConfig(env = process.env) {
     origin,
     secure: env.SECURE_COOKIES === "1",
     devControls: !production && env.LOCAL_TEST_CONTROLS === "1",
-    basicAuthCredentials: username && password ? { username, password } : null,
+    basicAuthCredentials:
+      authMode === "basic" && username && password
+        ? { username, password }
+        : null,
+    googleConfig: hasGoogle
+      ? {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+          origin,
+        }
+      : null,
     commit: env.RENDER_GIT_COMMIT || "local",
   };
 }

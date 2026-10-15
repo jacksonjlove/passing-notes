@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { api } from "../api.js";
 import Icon from "./Icon.jsx";
+import GoogleAccount from "./GoogleAccount.jsx";
 export default function AccountForm({ onSignedIn, invite }) {
   const [register, setRegister] = useState(false),
     [error, setError] = useState(""),
@@ -68,6 +69,7 @@ export default function AccountForm({ onSignedIn, invite }) {
             ? "You have an invitation waiting. Sign in or create a profile to join."
             : "Sign in, leave a note, and let the guessing begin."}
         </p>
+        <GoogleAccount invite={invite} />
         <form onSubmit={submit} className="stack">
           <label>
             Username
