@@ -1,6 +1,7 @@
 import express from 'express';
 import {openDatabase} from './db.js';
 import {authRoutes} from './routes/auth.js';
+import {devRoutes} from './routes/dev.js';
 import {roundRoutes} from './routes/rounds.js';
 import {groupRoutes} from './routes/groups.js';
 import {readUser} from './auth.js';
@@ -15,6 +16,7 @@ export function createApp({db=openDatabase(),now=Date.now,devControls=false,orig
  app.use('/api/auth',authRoutes({db,now,secure}));
  app.use('/api',groupRoutes({db,now}));
  app.use('/api',roundRoutes({db,now,devControls}));
+ app.use('/api',devRoutes({db,now,devControls}));
  app.use((error,req,res,next)=>{if(res.headersSent)return next(error);const status=error.status||500;if(status===500)console.error('Request failed:',error.message);res.status(status).json({error:{code:error.code||String(status),message:status===500?'Something went wrong. Please retry.':error.message}});});
  return app;
 }

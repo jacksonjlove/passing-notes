@@ -1,8 +1,9 @@
+import {finalizeRound} from './scoring.js';
 import {randomUUID} from 'node:crypto';import {DateTime} from 'luxon';import {fail,text} from './errors.js';import {requireMembership,activeSchedule} from './groups.js';import {resolveSchedule} from './schedule.js';import {selectPrompt} from './prompts.js';
 export function currentRound(db,groupId){return db.prepare('SELECT * FROM rounds WHERE group_id=? ORDER BY opens_at DESC,rowid DESC LIMIT 1').get(groupId)||null;}
 export function createRound(db,g,date,schedule,participants,now,isTest=false){const prompt=selectPrompt(db,g.id),id=randomUUID();db.prepare('INSERT INTO rounds(id,group_id,local_date,prompt_id,prompt_text,opens_at,answer_deadline,reveal_at,is_test) VALUES(?,?,?,?,?,?,?,?,?)').run(id,g.id,date,prompt.id,prompt.text,schedule.opensAt,schedule.answerDeadline,schedule.revealAt,Number(isTest));for(const member of participants)db.prepare('INSERT INTO round_participants VALUES(?,?)').run(id,member.account_id);db.prepare('INSERT INTO prompt_usage VALUES(?,?,?) ON CONFLICT(group_id,prompt_id) DO UPDATE SET used_at=excluded.used_at').run(g.id,prompt.id,now);return db.prepare('SELECT * FROM rounds WHERE id=?').get(id);}
 export function advanceRound(db,r,now){if(r.phase==='revealed')return;const count=db.prepare('SELECT count(*) AS n FROM answers WHERE round_id=?').get(r.id).n;const eligible=db.prepare('SELECT count(*) AS n FROM round_participants WHERE round_id=?').get(r.id).n;
- if(now>=r.reveal_at || now>=r.answer_deadline&&count<4){db.prepare("UPDATE rounds SET phase='revealed',finalized=1 WHERE id=?").run(r.id);}
+ if(now>=r.reveal_at || now>=r.answer_deadline&&count<4){finalizeRound(db,r.id,now);}
  else if(count>=4&&(now>=r.answer_deadline||count===eligible))db.prepare("UPDATE rounds SET phase='guessing',scored=1 WHERE id=?").run(r.id);
 }
 export function reconcileGroup(db,groupId,now){return db.transaction(()=>{let g=db.prepare('SELECT * FROM groups WHERE id=?').get(groupId);if(!g)return null;for(const r of db.prepare("SELECT * FROM rounds WHERE group_id=? AND phase!='revealed'").all(groupId))advanceRound(db,r,now);
