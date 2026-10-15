@@ -1,0 +1,118 @@
+name: Passing Notes checks and deployment
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: passing_notes_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm test
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:ci-test-only@127.0.0.1:5432/passing_notes_test
+      - run: npm run build
+  production:
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    concurrency:
+      group: passing-notes-production
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Skip superseded commits before production changes
+        id: current
+        working-directory: .
+        shell: bash
+        run: |
+          latest=$(git ls-remote origin refs/heads/main | cut -f1)
+          test -n "$latest"
+          if [ "$latest" = "$GITHUB_SHA" ]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+          fi
+      - run: npm ci
+        if: steps.current.outputs.deploy == 'true'
+      - name: Validate required deployment settings
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          node --input-type=module -e 'import {origin} from "./scripts/deploy-render.mjs"; origin(process.env.RENDER_API_URL); origin(process.env.APP_URL); for (const key of ["DATABASE_URL","RENDER_DEPLOY_HOOK_URL","VERCEL_TOKEN","VERCEL_ORG_ID","VERCEL_PROJECT_ID","RENDER_API_URL","APP_URL"]) { if (!process.env[key]) throw Error("Missing setting: " + key); }'
+      - name: Migrate durable production database
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: npm run db:migrate
+      - name: Deploy and verify the tested backend commit
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+        run: node scripts/deploy-render.mjs
+      - name: Configure the public API destination
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+        run: npm run hosting:configure
+      - name: Deploy frontend from the same checkout
+        if: steps.current.outputs.deploy == 'true'
+        working-directory: .
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          npm install --global vercel@64.1.0
+          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+          vercel build --prod --token "$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --meta "githubCommitSha=$GITHUB_SHA"
+      - name: Verify stable app URL and proxied backend version
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: node scripts/verify-live.mjs

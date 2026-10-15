@@ -20,7 +20,7 @@ it("locks four answers early, hiding authors until scheduled reveal", async () =
       })
     ).status,
   ).toBe(409);
-  f.db.close();
+  await f.dispose();
 });
 it("scores three players, opens matching early, and keeps the fixed reveal", async () => {
   const f = await groupFixture(3);
@@ -50,7 +50,7 @@ it("scores three players, opens matching early, and keeps the fixed reveal", asy
       (await f.agents[0].get(`/api/groups/${f.group.id}/leaderboard`)).body
         .entries[0].score,
     ).toBe(2);
-  f.db.close();
+  await f.dispose();
 });
 it("opens matching at the deadline with three answers in a larger group", async () => {
   const f = await groupFixture(4);
@@ -65,7 +65,7 @@ it("opens matching at the deadline with three answers in a larger group", async 
     (await write(f.agents[3], "put", path + "/matches", { matches: [] }))
       .status,
   ).toBe(403);
-  f.db.close();
+  await f.dispose();
 });
 it("reveals two answers without points at the answer deadline", async () => {
   const f = await groupFixture(3);
@@ -79,7 +79,7 @@ it("reveals two answers without points at the answer deadline", async () => {
   expect(view.round.phase).toBe("revealed");
   expect(view.reveal.scored).toBe(false);
   expect(view.reveal.results).toEqual([]);
-  f.db.close();
+  await f.dispose();
 });
 it("requires three group members for daily and practice rounds", async () => {
   const f = await groupFixture(2);
@@ -94,7 +94,7 @@ it("requires three group members for daily and practice rounds", async () => {
   expect(
     (await f.agents[0].get(`/api/groups/${f.group.id}/round`)).body.round,
   ).toBeNull();
-  f.db.close();
+  await f.dispose();
 });
 it("rejects blank/long answers and excludes a mid-round joiner", async () => {
   const f = await groupFixture(3);
@@ -116,5 +116,5 @@ it("rejects blank/long answers and excludes a mid-round joiner", async () => {
     (await write(agent, "put", path + "/answer", { text: "Late answer" }))
       .status,
   ).toBe(403);
-  f.db.close();
+  await f.dispose();
 });

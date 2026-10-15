@@ -1,5 +1,4 @@
 import { it, expect } from "vitest";
-import { openDatabase } from "../server/db.js";
 import { selectPrompt } from "../server/prompts.js";
 import { fixture, write } from "./helpers.js";
 it("exhausts unused prompts before repeating", async () => {
@@ -13,11 +12,15 @@ it("exhausts unused prompts before repeating", async () => {
   const id = made.body.group.id;
   const seen = new Set();
   for (let i = 0; i < 32; i++) {
-    const p = selectPrompt(f.db, id);
+    const p = await selectPrompt(f.db, id);
     expect(seen.has(p.id)).toBe(false);
     seen.add(p.id);
-    f.db.prepare("INSERT INTO prompt_usage VALUES(?,?,?)").run(id, p.id, i + 1);
+    await f.db.query("INSERT INTO prompt_usage VALUES($1,$2,$3)", [
+      id,
+      p.id,
+      i + 1,
+    ]);
   }
-  expect(selectPrompt(f.db, id).id).toBe([...seen][0]);
-  f.db.close();
+  expect((await selectPrompt(f.db, id)).id).toBe([...seen][0]);
+  await f.dispose();
 });

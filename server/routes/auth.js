@@ -13,7 +13,7 @@ export function authRoutes({ db, now, secure }) {
     "/register",
     route(async (req, res) => {
       const user = await register(db, req.body);
-      setSession(db, res, user.id, now(), secure);
+      await setSession(db, res, user.id, now(), secure);
       res.status(201).json({ user });
     }),
   );
@@ -24,9 +24,11 @@ export function authRoutes({ db, now, secure }) {
         typeof req.body.username === "string"
           ? req.body.username.trim().toLowerCase()
           : "";
-      const row = db
-        .prepare("SELECT * FROM accounts WHERE username=?")
-        .get(username);
+      const {
+        rows: [row],
+      } = await db.query("SELECT * FROM accounts WHERE username=$1", [
+        username,
+      ]);
       if (
         typeof req.body.password !== "string" ||
         req.body.password.length > 128 ||
@@ -35,30 +37,35 @@ export function authRoutes({ db, now, secure }) {
       )
         fail(401, "Username or password is incorrect.");
       const user = publicUser(row);
-      setSession(db, res, user.id, now(), secure);
+      await setSession(db, res, user.id, now(), secure);
       res.json({ user });
     }),
   );
   router.get(
     "/me",
-    route((req, res) => {
+    route(async (req, res) => {
       if (!req.user) fail(401, "Please sign in.");
       res.json({ user: req.user });
     }),
   );
   router.post(
     "/logout",
-    route((req, res) => {
+    route(async (req, res) => {
       const token = req.headers.cookie
         ?.split(";")
         .map((x) => x.trim())
         .find((x) => x.startsWith("pn_session="))
         ?.slice(11);
       if (token)
-        db.prepare("DELETE FROM sessions WHERE token_hash=?").run(
+        await db.query("DELETE FROM sessions WHERE token_hash=$1", [
           digest(token),
-        );
-      res.clearCookie("pn_session", { path: "/" });
+        ]);
+      res.clearCookie("pn_session", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure,
+        path: "/",
+      });
       res.json({ ok: true });
     }),
   );

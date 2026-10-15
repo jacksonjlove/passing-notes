@@ -13,7 +13,7 @@ export const digest = (value) =>
 export const publicUser = (row) => ({
   id: row.id,
   username: row.username,
-  displayName: row.display_name,
+  displayName: row.display_name ?? row.displayName,
 });
 export async function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
@@ -25,27 +25,28 @@ export async function verifyPassword(password, encoded) {
   const hash = await scrypt(password, salt, 64);
   return timingSafeEqual(hash, Buffer.from(hex, "hex"));
 }
-export function readUser(db, req, now) {
+export async function readUser(db, req, now) {
   const token = req.headers.cookie
     ?.split(";")
     .map((x) => x.trim())
     .find((x) => x.startsWith("pn_session="))
     ?.slice(11);
   if (!token) return null;
-  const row = db
-    .prepare(
-      "SELECT a.* FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=? AND s.expires_at>?",
-    )
-    .get(digest(token), now);
+  const {
+    rows: [row],
+  } = await db.query(
+    "SELECT a.* FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=$1 AND s.expires_at>$2",
+    [digest(token), now],
+  );
   return row ? publicUser(row) : null;
 }
-export function setSession(db, res, userId, now, secure) {
+export async function setSession(db, res, userId, now, secure) {
   const token = randomBytes(32).toString("hex");
-  db.prepare("INSERT INTO sessions VALUES(?,?,?)").run(
+  await db.query("INSERT INTO sessions VALUES($1,$2,$3)", [
     digest(token),
     userId,
     now + 30 * 86400000,
-  );
+  ]);
   res.cookie("pn_session", token, {
     httpOnly: true,
     sameSite: "lax",
@@ -68,21 +69,18 @@ export async function register(db, body) {
     body.password.length > 128
   )
     fail(400, "Use a password with 8–128 characters.");
-  if (db.prepare("SELECT 1 FROM accounts WHERE username=?").get(username))
-    fail(409, "That username is already taken.");
   const id = randomUUID(),
     hash = await hashPassword(body.password);
   try {
-    db.prepare("INSERT INTO accounts VALUES(?,?,?,?)").run(
+    await db.query("INSERT INTO accounts VALUES($1,$2,$3,$4)", [
       id,
       username,
       displayName,
       hash,
-    );
-  } catch (e) {
-    if (e.code?.includes("UNIQUE"))
-      fail(409, "That username is already taken.");
-    throw e;
+    ]);
+  } catch (error) {
+    if (error.code === "23505") fail(409, "That username is already taken.");
+    throw error;
   }
   return { id, username, displayName };
 }

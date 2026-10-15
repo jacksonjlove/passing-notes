@@ -61,7 +61,7 @@ it("shuffles a stable anonymous board, excludes self, rejects duplicates and sco
   expect(
     (await write(f.agents[0], "put", f.path + "/matches", { matches })).status,
   ).toBe(409);
-  f.db.close();
+  await f.dispose();
 });
 it("denies guesses to nonanswerers but permits reading the reveal", async () => {
   const f = await ready(5);
@@ -72,7 +72,7 @@ it("denies guesses to nonanswerers but permits reading the reveal", async () => 
   ).toBe(403);
   f.setTime("2026-10-10T01:00:00Z");
   expect((await f.agents[4].get(f.path)).body.reveal.answers).toHaveLength(4);
-  f.db.close();
+  await f.dispose();
 });
 it("enforces creator-only development controls and respects under-three scoring", async () => {
   const f = await groupFixture(3);
@@ -94,7 +94,7 @@ it("enforces creator-only development controls and respects under-three scoring"
     .body;
   expect(result.round.phase).toBe("revealed");
   expect(result.reveal.scored).toBe(false);
-  f.db.close();
+  await f.dispose();
 });
 it("does not expose development routes when disabled", async () => {
   const f = await groupFixture(3, { devControls: false });
@@ -105,5 +105,5 @@ it("does not expose development routes when disabled", async () => {
       })
     ).status,
   ).toBe(404);
-  f.db.close();
+  await f.dispose();
 });

@@ -1,11 +1,24 @@
 import request from "supertest";
-import { openDatabase } from "../server/db.js";
+import { afterEach } from "vitest";
 import { createApp } from "../server/app.js";
+import { createTestDatabase } from "./postgresFixture.js";
 export const origin = "http://localhost:5174";
+const activeDatabases = new Set();
+afterEach(async () => {
+  const databases = [...activeDatabases];
+  activeDatabases.clear();
+  await Promise.all(databases.map((database) => database.dispose()));
+});
 export async function fixture(count = 4, options = {}) {
-  const db = options.db || openDatabase();
+  const database = options.database || (await createTestDatabase());
+  activeDatabases.add(database);
   let time = Date.parse("2026-10-08T14:00:00Z");
-  const app = createApp({ db, now: () => time, devControls: true, ...options });
+  const app = createApp({
+    db: database.db,
+    now: () => time,
+    devControls: true,
+    ...options,
+  });
   const agents = [],
     users = [];
   for (let i = 0; i < count; i++) {
@@ -22,7 +35,10 @@ export async function fixture(count = 4, options = {}) {
     users.push(result.body.user);
   }
   return {
-    db,
+    get db() {
+      return database.db;
+    },
+    database,
     app,
     agents,
     users,
@@ -30,6 +46,8 @@ export async function fixture(count = 4, options = {}) {
       time = typeof x === "string" ? Date.parse(x) : x;
     },
     getTime: () => time,
+    dispose: () => database.dispose(),
+    reconnect: () => database.reconnect(),
   };
 }
 export const write = (agent, method, path, body = {}) =>

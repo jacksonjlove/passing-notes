@@ -2,20 +2,18 @@
 
 A private daily guessing game for friends and family. Answer a shared prompt, match anonymous notes to their authors, and return for the reveal. Built for both phones and computers with a notebook-inspired interface.
 
-**Note to the grader:** This is a new project for Problem Set 3. It is different from the PS2 guitar amp simulator, The Creative Useful Modeler, which remains in the separate SI 212 assignments repository. See [GRADER_NOTE.md](GRADER_NOTE.md).
+**Note to the grader:** This is a new project for Problem Set 3. It is different from the PS2 guitar amp simulator, The Creative Useful Modeler, which remains in `ps2-web-app/`. See [GRADER_NOTE.md](GRADER_NOTE.md).
 
 ## Run locally
 
-Use Node.js 24 and install the project’s dependencies from this folder:
+Use Node.js 24. The active database is PostgreSQL; the old local SQLite file stays untouched and is not imported.
 
-```sh
-npm install
-npm start
-```
+1. Run `npm ci` and `docker compose up -d` in this folder. Docker is needed for the supplied local database service; an existing local PostgreSQL 17 instance also works.
+2. Create the separate test database: `docker compose exec postgres createdb -U passing_notes passing_notes_test` (once).
+3. Copy `.env.example` to ignored `.env` and set `DATABASE_URL=postgresql://passing_notes@127.0.0.1:5432/passing_notes_dev` and `TEST_DATABASE_URL=postgresql://passing_notes@127.0.0.1:5432/passing_notes_test`. These are local trust-authentication connections, never production credentials.
+4. Run `npm run db:migrate`, then `npm start`. Open http://localhost:5174.
 
-Open [Passing Notes on localhost](http://localhost:5174). The frontend runs on port 5174 and proxies requests to the backend on port 3002. Stop both with Ctrl+C.
-
-Create a profile with a username, display name, and password. Create a group or join with an invitation. The app remembers sign-in on the same device for up to 30 days; sign in again to play on another browser. There is no password-reset flow in this local version.
+The local frontend proxies to port 3002. Optional local shared credentials must be supplied as both BASIC_AUTH_USERNAME and BASIC_AUTH_PASSWORD. Leave secure cookies off for HTTP localhost. Production requires HTTPS and secure cookies.
 
 ## Play
 
@@ -46,23 +44,16 @@ Practice rounds have an answer deadline one hour after creation and a reveal two
 
 ## Data and settings
 
-SQLite stores local data in `data/passing-notes.sqlite`. It survives server restarts. The database and its journal files, environment files, build output, and dependencies are ignored by Git. Database migrations run automatically at startup; existing rows are retained.
+Neon CLI setup writes its secrets into ignored `.env.local`. Backend, test, and migration commands load `.env`, then `.env.local`; externally supplied environment variables take priority. The backend uses pooled `DATABASE_URL`; migrations prefer direct `DATABASE_URL_UNPOOLED`. Your separate `TEST_DATABASE_URL` must still identify `passing_notes_test`.
 
-Optional environment setting names:
+PostgreSQL stores accounts and game records. Production uses its own fresh Neon database; development and tests use separate databases. Schema migrations are explicit (`npm run db:migrate`) and checked before startup; app startup never changes the production schema. Remote database connections verify TLS certificates.
 
-| Setting | Purpose |
-| --- | --- |
-| `DATABASE_PATH` | Alternative SQLite file path |
-| `APP_ORIGIN` | Allowed frontend origin; defaults to `http://localhost:5174` |
-| `LOCAL_TEST_CONTROLS` | Set to `1` to enable creator-only local controls |
-| `SECURE_COOKIES` | Set to `1` when a future environment serves the app over HTTPS |
-
-Passwords use salted scrypt hashes. Session tokens are held in HTTP-only cookies; the database stores token digests. Use the exact localhost URL above, since a different origin needs matching configuration.
+See [DEPLOY.md](DEPLOY.md) for setting names and [hosting setup](docs/hosting-setup.md) for account setup and the live verification checklist. Never put credentials into frontend code, chat, or tracked files.
 
 ## Verify
 
 ```sh
-npm test
+node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run
 npm run build
 npm run format:check
 ```
@@ -71,6 +62,6 @@ Tests cover accounts, creator/member permissions, invitations, prompt rotation, 
 
 ## PS3 status
 
-This is a working **local** app. Remote play with friends will need hosting. Hosting, automatic deployment, basic authentication for Part A, Google sign-in for Part B, `DEPLOY.md`, and the showcase pull request are future steps. Personal local passwords do not replace the assignment’s required basic authentication or Google/GitHub integration.
+The PostgreSQL conversion, Part A shared authentication, public version endpoint, and test-gated deployment workflow are implemented. Production has not yet been provisioned or verified. Render Free may take about a minute to wake after idle time; the frontend shows connecting/retry feedback and never automatically replays writes.
 
-The design and implementation plan live in `docs/superpowers/`. Stable account IDs allow Google identities to be attached later without replacing memberships and scores.
+Part B Google/GitHub sign-in, account linking, and the class showcase remain separate work. Existing personal passwords do not replace that requirement. See [hosting setup](docs/hosting-setup.md).
