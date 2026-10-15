@@ -127,6 +127,37 @@ export function groupRoutes({ db, now }) {
       res.json({ group: await groupView(db, group, req.user.id) });
     }),
   );
+  r.delete(
+    "/groups/:id",
+    route(async (req, res) => {
+      await withGroupTransaction(db, req.params.id, async (tx) => {
+        const group = await requireCreator(tx, req.params.id, req.user.id);
+        if (req.body.name !== group.name)
+          fail(400, "Type the group name exactly to confirm deletion.");
+        for (const table of [
+          "guesses",
+          "round_boards",
+          "round_scores",
+          "round_participants",
+          "answers",
+        ])
+          await tx.query(
+            `DELETE FROM ${table} WHERE round_id IN (SELECT id FROM rounds WHERE group_id=$1)`,
+            [group.id],
+          );
+        for (const table of [
+          "rounds",
+          "prompt_usage",
+          "custom_prompts",
+          "invitations",
+          "memberships",
+        ])
+          await tx.query(`DELETE FROM ${table} WHERE group_id=$1`, [group.id]);
+        await tx.query("DELETE FROM groups WHERE id=$1", [group.id]);
+      });
+      res.json({ ok: true });
+    }),
+  );
   r.get(
     "/groups/:id/settings",
     route(async (req, res) => {

@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 import Icon from "./Icon.jsx";
-export default function GroupSettings({ group, onUpdate }) {
+export default function GroupSettings({ group, onUpdate, onDelete }) {
   const [settings, setSettings] = useState(group),
     [prompts, setPrompts] = useState([]),
     [invitations, setInvitations] = useState([]),
     [invite, setInvite] = useState(null),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [confirmDelete, setConfirmDelete] = useState(false),
+    [deleteName, setDeleteName] = useState("");
   const base = `/groups/${group.id}`;
   async function load() {
     const [s, p, i] = await Promise.all([
@@ -32,6 +34,21 @@ export default function GroupSettings({ group, onUpdate }) {
       setMessage(success);
       await load();
       onUpdate?.();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function deleteGroup(e) {
+    e.preventDefault();
+    if (busy || deleteName !== group.name) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await api(base, { method: "DELETE", body: { name: deleteName } });
+      onDelete?.();
     } catch (e) {
       setError(e.message);
     } finally {
@@ -209,6 +226,54 @@ export default function GroupSettings({ group, onUpdate }) {
           </p>
         ))}
       </section>
+      {group.role === "creator" && (
+        <section className="paper">
+          <h2>Delete group</h2>
+          <p>
+            This permanently deletes this group for everyone, including
+            invitations, prompts, rounds, answers, guesses and scores. Player
+            accounts and other groups are kept.
+          </p>
+          {!confirmDelete ? (
+            <button
+              className="button secondary"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              Delete group…
+            </button>
+          ) : (
+            <form className="stack" onSubmit={deleteGroup}>
+              <label>
+                Type {group.name} to confirm
+                <input
+                  value={deleteName}
+                  onChange={(e) => setDeleteName(e.target.value)}
+                  autoComplete="off"
+                  disabled={busy}
+                />
+              </label>
+              <button
+                className="button"
+                disabled={busy || deleteName !== group.name}
+              >
+                {busy ? "Deleting…" : "Permanently delete group"}
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                disabled={busy}
+                onClick={() => {
+                  setConfirmDelete(false);
+                  setDeleteName("");
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+          )}
+        </section>
+      )}
       {message && (
         <p className="success settings-message" role="status">
           {message}

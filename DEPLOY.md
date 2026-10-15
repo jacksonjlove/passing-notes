@@ -49,7 +49,7 @@ Anyone with a Google account may sign in. A new Google identity creates a player
 | Visitor without a player session | Load frontend, use registration/sign-in endpoints and GET /api/version; /api/groups returns 401 |
 | Signed-in player | Read their own account, create groups, join using an invitation, and access only groups they belong to |
 | Group member | Submit their own eligible answers/guesses and view their group's permitted round, reveal and leaderboard data |
-| Group creator | Member actions plus invitations, custom prompts and schedule settings for groups they created; other members receive 403 for these actions |
+| Group creator | Member actions plus invitations, custom prompts, schedule settings and permanent deletion for groups they created; other members receive 403 for these actions |
 
 Authorization checks run in Express, independently of React. Google authentication does not confer membership or creator privileges. Joining a group still requires an invitation. Without membership, private group resources return 404 to avoid exposing their existence.
 
@@ -82,3 +82,7 @@ Still awaiting human or separate operational verification:
 - Observe the first request after more than 15 minutes of Render inactivity and complete a backup/restore drill in a separate database.
 
 The public class-showcase pull request is a separate submission requirement. It is not established by deploying this application.
+
+## Deleting a group
+
+Only the group creator can permanently delete a group from Group settings, after typing the exact group name. The server independently checks ownership and confirmation. One transaction removes that group’s invitations, prompts, rounds, answers, guesses, boards, scores and memberships. Player accounts and other groups remain. Deleted invitations stop working. Deletion uses the same group lock as answers, scoring and invitation joins, and any failure rolls back the cleanup. There is no in-app undo.
