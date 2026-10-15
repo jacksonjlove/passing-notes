@@ -19,12 +19,10 @@ it("preserves sessions, answers, guesses and totals after restarting the databas
         text: `Note ${i}`,
       });
     const board = (await f.agents[0].get(roundPath)).body.board;
-    const matches = board.answers
-      .slice(0, 2)
-      .map((a) => ({
-        answerId: a.id,
-        personId: f.users[Number(a.text.slice(-1))].id,
-      }));
+    const matches = board.answers.slice(0, 2).map((a) => ({
+      answerId: a.id,
+      personId: f.users[Number(a.text.slice(-1))].id,
+    }));
     await write(f.agents[0], "put", roundPath + "/matches", { matches });
     const login = await write(f.agents[0], "post", "/api/auth/login", {
       username: "player0",

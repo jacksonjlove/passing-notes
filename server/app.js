@@ -19,14 +19,12 @@ export function createApp({
   app.use((req, res, next) => {
     if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
       if (req.headers.origin !== origin)
-        return res
-          .status(403)
-          .json({
-            error: {
-              code: "ORIGIN",
-              message: "Please use the app to send this request.",
-            },
-          });
+        return res.status(403).json({
+          error: {
+            code: "ORIGIN",
+            message: "Please use the app to send this request.",
+          },
+        });
       if (!req.is("application/json"))
         return res
           .status(400)
@@ -42,14 +40,12 @@ export function createApp({
         value.count++;
         attempts.set(key, value);
         if (value.count > 30)
-          return res
-            .status(429)
-            .json({
-              error: {
-                code: "LIMIT",
-                message: "Please wait a minute before trying again.",
-              },
-            });
+          return res.status(429).json({
+            error: {
+              code: "LIMIT",
+              message: "Please wait a minute before trying again.",
+            },
+          });
         if (attempts.size > 10000) attempts.clear();
       }
     }
@@ -64,17 +60,15 @@ export function createApp({
     if (res.headersSent) return next(error);
     const status = error.status || 500;
     if (status === 500) console.error("Request failed:", error.message);
-    res
-      .status(status)
-      .json({
-        error: {
-          code: error.code || String(status),
-          message:
-            status === 500
-              ? "Something went wrong. Please retry."
-              : error.message,
-        },
-      });
+    res.status(status).json({
+      error: {
+        code: error.code || String(status),
+        message:
+          status === 500
+            ? "Something went wrong. Please retry."
+            : error.message,
+      },
+    });
   });
   return app;
 }
